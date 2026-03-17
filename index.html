@@ -339,6 +339,7 @@
   let currentDist = 'uniform';
   let popChartInst = null;
   let sampleChartInst = null;
+  let spare = null; // Only declare once 
 
   // ── Distribution picker ────────────────────────────────────
   document.querySelectorAll('.dist-btn').forEach(btn => {
@@ -360,7 +361,7 @@
   sampleSizeEl.addEventListener('input', () => sizeValEl.textContent = sampleSizeEl.value);
   numSamplesEl.addEventListener('input', () => numValEl.textContent  = numSamplesEl.value);
 
-let spare = null;
+
 function normalRandom() {
   if (spare !== null) { const v = spare; spare = null; return v; }
   let u, v, s;
@@ -402,27 +403,6 @@ function normalRandom() {
 
 
   // ── Helpers ────────────────────────────────────────────────
-let spare = null;
-
-function normalRandom() {
-  if (spare !== null) {
-    const val = spare;
-    spare = null;
-    return val;
-  }
-
-  let u, v, s;
-  do {
-    u = Math.random() * 2 - 1;
-    v = Math.random() * 2 - 1;
-    s = u * u + v * v;
-  } while (s === 0 || s >= 1);
-
-  const mul = Math.sqrt(-2 * Math.log(s) / s);
-  spare = v * mul;
-  return u * mul;
-}
-
   
   function mean(arr) {
     return arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -481,8 +461,7 @@ function normalRandom() {
     // Bins
     const pb = makeBins(pop,   20);
     const sb = makeBins(means, 30);
-    const bellPts = sb.labels.map(l => normalPDF(parseFloat(l), meanOfMeans, stdErr) * numS * sb.binWidth);
-
+    
     
     // Bell curve overlay — one value per bin label so it aligns with the bars
     const bellPts = sb.labels.map(label => {
