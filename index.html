@@ -297,34 +297,32 @@
 
   // ── Random samplers ────────────────────────────────────────
   function drawOne(dist) {
-    switch (dist) {
-      case 'uniform':
-        return Math.random() * 10;
+  switch (dist) {
+    case 'uniform':
+      return Math.random() * 10;
 
-      case 'exponential':
-        // Inverse CDF of Exp(λ=0.5)
-        return -Math.log(1 - Math.random()) * 2;
+    case 'exponential':
+      return -Math.log(1 - Math.random()) * 2;
 
-      case 'bimodal':
-        // Mix of two narrow uniforms
-        return Math.random() < 0.5
-          ? Math.random() * 2 + 1
-          : Math.random() * 2 + 7;
+    case 'bimodal':
+      return Math.random() < 0.5
+        ? Math.random() * 2 + 1
+        : Math.random() * 2 + 7;
 
-      case 'skewed': {
-        // Box-Muller, keep only positive half → right skew
-        let u, v;
-        do { u = Math.random(); } while (u === 0);
-        do { v = Math.random(); } while (v === 0);
-        return Math.abs(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)) * 2;
-      }
-
-     case 'normal':
-        return normalRandom() * 2 + 5;
-
-      }
+    case 'skewed': {
+      let u, v;
+      do { u = Math.random(); } while (u === 0);
+      do { v = Math.random(); } while (v === 0);
+      return Math.abs(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)) * 2;
     }
+
+    case 'normal':
+      return normalRandom() * 2 + 5;
+
+    default:
+      return 0; // safety fallback
   }
+}
 
   
 
