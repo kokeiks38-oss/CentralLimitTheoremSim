@@ -209,6 +209,7 @@
     <button class="dist-btn" data-dist="exponential">Exponential</button>
     <button class="dist-btn" data-dist="bimodal">Bimodal</button>
     <button class="dist-btn" data-dist="skewed">Skewed</button>
+    <button class="dist-btn" data-dist="Normal Distribution">Normal Distribution</button>
   </div>
 
   <!-- Sliders -->
@@ -316,6 +317,20 @@
         do { u = Math.random(); } while (u === 0);
         do { v = Math.random(); } while (v === 0);
         return Math.abs(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)) * 2;
+      }
+
+      case 'Normal Distribution': {
+        let u = 0, v = 0;
+
+        // Avoid 0 because log(0) is undefined
+        while (u === 0) u = Math.random();
+        while (v === 0) v = Math.random();
+
+        // Standard normal (mean = 0, std = 1)
+        const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+
+        return z;
+}
       }
     }
   }
@@ -467,9 +482,10 @@
     // ── Insight text ──
     const distNames = {
       uniform:     'Uniform (flat)',
-      exponential: 'Exponential (skewed right)',
-      bimodal:     'Bimodal (two humps)',
-      skewed:      'Right-skewed'
+      normal:      'Normal (Gaussian bell curve)',
+      exponential: 'Exponential (right-skewed)',
+      bimodal:     'Bimodal (two peaks)',
+      skewed:      'Folded normal (right-skewed)'
     };
     const insightEl = document.getElementById('insight');
     if (n >= 30) {
