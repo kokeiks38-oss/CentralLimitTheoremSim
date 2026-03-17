@@ -355,8 +355,7 @@
   const sizeValEl    = document.getElementById('sizeVal');
   const numValEl     = document.getElementById('numVal');
 
-  const sampleSizeEl = document.getElementById('sampleSize');
-  const numSamplesEl = document.getElementById('numSamples');
+ 
   
   sampleSizeEl.addEventListener('input', () => sizeValEl.textContent = sampleSizeEl.value);
   numSamplesEl.addEventListener('input', () => numValEl.textContent  = numSamplesEl.value);
@@ -399,8 +398,8 @@ function normalRandom() {
       return 0; // safety fallback
   }
 }
+//should be good
 
-  
 
   // ── Helpers ────────────────────────────────────────────────
 let spare = null;
@@ -482,7 +481,9 @@ function normalRandom() {
     // Bins
     const pb = makeBins(pop,   20);
     const sb = makeBins(means, 30);
+    const bellPts = sb.labels.map(l => normalPDF(parseFloat(l), meanOfMeans, stdErr) * numS * sb.binWidth);
 
+    
     // Bell curve overlay — one value per bin label so it aligns with the bars
     const bellPts = sb.labels.map(label => {
       const x = parseFloat(label);
@@ -587,6 +588,113 @@ function normalRandom() {
   // ── Init ───────────────────────────────────────────────────
   document.getElementById('runBtn').addEventListener('click', runSim);
   runSim();
+// ═══════════════════════════════════
+// CONFIDENCE INTERVAL BUILDER
+// ═══════════════════════════════════
+let ciZ = 1.645;
+
+document.querySelectorAll('.dist-btn[data-z]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.dist-btn[data-z]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    ciZ = parseFloat(btn.dataset.z);
+    updateCI();
+  });
+});
+
+['ciMean','ciStd','ciN'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    document.getElementById(id + 'Val').textContent = document.getElementById(id).value;
+    updateCI();
+  });
+});
+
+function drawCIChart(xbar, lower, upper, rangeMin, rangeMax) {
+  const canvas = document.getElementById('ciCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth - 32;
+  const H = 100;
+  canvas.width  = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  const pad  = 50;
+  const span = rangeMax - rangeMin;
+  const toX  = v => pad + ((v - rangeMin) / span) * (W - pad * 2);
+  const midY = H / 2;
+
+  const lx = toX(lower);
+  const ux = toX(upper);
+  const mx = toX(xbar);
+
+  // axis
+  ctx.strokeStyle = '#c4c2ee';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(pad, midY); ctx.lineTo(W - pad, midY); ctx.stroke();
+
+  // interval band
+  ctx.fillStyle = 'rgba(127,119,221,0.15)';
+  ctx.fillRect(lx, midY - 20, ux - lx, 40);
+
+  // interval line
+  ctx.strokeStyle = '#7F77DD';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(lx, midY); ctx.lineTo(ux, midY); ctx.stroke();
+
+  // end caps
+  [lx, ux].forEach(x => {
+    ctx.strokeStyle = '#7F77DD';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(x, midY - 14); ctx.lineTo(x, midY + 14); ctx.stroke();
+  });
+
+  // mean needle (orange)
+  ctx.strokeStyle = '#D85A30';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(mx, midY - 24); ctx.lineTo(mx, midY + 24); ctx.stroke();
+
+  // text labels
+  ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'center';
+
+  ctx.fillStyle = '#534AB7';
+  ctx.fillText(lower.toFixed(1), lx, midY + 32);
+  ctx.fillText(upper.toFixed(1), ux, midY + 32);
+
+  ctx.fillStyle = '#D85A30';
+  ctx.fillText('x̄ = ' + xbar.toFixed(1), mx, midY - 30);
+
+  ctx.fillStyle = '#9b9bb4';
+  ctx.textAlign = 'left';  ctx.fillText(rangeMin.toFixed(0), pad, midY + 32);
+  ctx.textAlign = 'right'; ctx.fillText(rangeMax.toFixed(0), W - pad, midY + 32);
+}
+
+function updateCI() {
+  const xbar  = parseFloat(document.getElementById('ciMean').value);
+  const sigma = parseFloat(document.getElementById('ciStd').value);
+  const n     = parseFloat(document.getElementById('ciN').value);
+
+  const se    = sigma / Math.sqrt(n);
+  const moe   = ciZ * se;
+  const lower = xbar - moe;
+  const upper = xbar + moe;
+
+  document.getElementById('ciLower').textContent = lower.toFixed(2);
+  document.getElementById('ciUpper').textContent = upper.toFixed(2);
+  document.getElementById('ciSE').textContent    = se.toFixed(3);
+  document.getElementById('ciMOE').textContent   = moe.toFixed(2);
+
+  const padding = moe * 1.5;
+  drawCIChart(xbar, lower, upper, lower - padding, upper + padding);
+
+  const levelLabel = document.querySelector('.dist-btn[data-z].active').textContent;
+  const narrowWide = moe < 5 ? 'quite narrow' : moe < 15 ? 'moderate' : 'wide';
+  document.getElementById('ciInsight').innerHTML =
+    `With <strong>n = ${Math.round(n)}</strong> and σ = ${sigma}, your <strong>${levelLabel}</strong> interval is <strong>${narrowWide}</strong> (±${moe.toFixed(2)}). ` +
+    `If you repeated this study many times, <strong>${levelLabel.replace(' confidence','%')}</strong> of all intervals would contain the true population mean.`;
+}
+
+  
 </script>
   <script data-goatcounter="https://kokeiks38.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
