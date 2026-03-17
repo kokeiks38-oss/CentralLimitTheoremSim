@@ -332,81 +332,7 @@
 
 
   //old code !?1?
-<div class="container">
 
-  <div class="hero">
-    <div class="badge">Foundations of Statistical Analysis</div>
-    <h1>Central Limit Theorem</h1>
-    <p>Any distribution becomes normal when you average enough samples</p>
-  </div>
-
-  <!-- Distribution picker -->
-  <div class="dist-btns">
-    <button class="dist-btn active" data-dist="uniform">Uniform</button>
-    <button class="dist-btn" data-dist="exponential">Exponential</button>
-    <button class="dist-btn" data-dist="bimodal">Bimodal</button>
-    <button class="dist-btn" data-dist="skewed">Skewed</button>
-    <button class="dist-btn" data-dist="normal">Normal Distribution</button>
-  </div>
-
-  <!-- Sliders -->
-  <div class="controls">
-    <div class="ctrl-card">
-      <label for="sampleSize">Sample size (n)</label>
-      <div class="slider-row">
-        <input type="range" id="sampleSize" min="1" max="100" value="5" step="1" />
-        <span class="slider-val" id="sizeVal">5</span>
-      </div>
-    </div>
-    <div class="ctrl-card">
-      <label for="numSamples">Number of samples</label>
-      <div class="slider-row">
-        <input type="range" id="numSamples" min="10" max="10000" value="200" step="10" />
-        <span class="slider-val" id="numVal">200</span>
-      </div>
-    </div>
-  </div>
-
-  <button class="run-btn" id="runBtn">Run Simulation</button>
-
-  <!-- Charts -->
-  <div class="charts-row">
-    <div class="chart-box">
-      <div class="chart-title">
-        <span style="background:#D85A30;"></span>Population distribution
-      </div>
-      <div class="chart-wrap"><canvas id="popChart"></canvas></div>
-    </div>
-    <div class="chart-box">
-      <div class="chart-title">
-        <span style="background:#7F77DD;"></span>Distribution of sample means
-      </div>
-      <div class="chart-wrap"><canvas id="sampleChart"></canvas></div>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat">
-      <div class="stat-label">Population mean (μ)</div>
-      <div class="stat-val" id="statPopMean">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Mean of means</div>
-      <div class="stat-val" id="statSampleMean">—</div>
-    </div>
-    <div class="stat">
-      <div class="stat-label">Std error (σ/√n)</div>
-      <div class="stat-val" id="statStdErr">—</div>
-    </div>
-  </div>
-
-  <!-- Insight -->
-  <div class="insight" id="insight">
-    Choose a distribution above and click <strong>Run Simulation</strong> to see the magic!
-  </div>
-
-</div>
 
 <script>
   // ── State ──────────────────────────────────────────────────
@@ -429,9 +355,22 @@
   const sizeValEl    = document.getElementById('sizeVal');
   const numValEl     = document.getElementById('numVal');
 
+  const sampleSizeEl = document.getElementById('sampleSize');
+  const numSamplesEl = document.getElementById('numSamples');
+  
   sampleSizeEl.addEventListener('input', () => sizeValEl.textContent = sampleSizeEl.value);
   numSamplesEl.addEventListener('input', () => numValEl.textContent  = numSamplesEl.value);
 
+let spare = null;
+function normalRandom() {
+  if (spare !== null) { const v = spare; spare = null; return v; }
+  let u, v, s;
+  do { u = Math.random()*2-1; v = Math.random()*2-1; s = u*u+v*v; } while (s===0||s>=1);
+  const mul = Math.sqrt(-2*Math.log(s)/s);
+  spare = v * mul;
+  return u * mul;
+}
+  
   // ── Random samplers ────────────────────────────────────────
   function drawOne(dist) {
   switch (dist) {
