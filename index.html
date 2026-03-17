@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Central Limit Theorem Simulator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f4ff;
+      color: #1a1a2e;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .badge {
+      display: inline-block;
+      background: #EEEDFE;
+      color: #3C3489;
+      font-size: 12px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 600;
+      color: #26215C;
+    }
+    .hero p {
+      font-size: 15px;
+      color: #6b6b8a;
+      margin-top: 6px;
+    }
+
+    /* ── Distribution picker ── */
+    .dist-btns {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .dist-btn {
+      padding: 8px 20px;
+      border-radius: 24px;
+      border: 1.5px solid #c4c2ee;
+      font-size: 14px;
+      cursor: pointer;
+      background: #fff;
+      color: #534AB7;
+      transition: all 0.15s;
+    }
+    .dist-btn:hover { background: #EEEDFE; }
+    .dist-btn.active {
+      background: #7F77DD;
+      color: #fff;
+      border-color: #7F77DD;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 500px) { .controls { grid-template-columns: 1fr; } }
+
+    .ctrl-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      border: 1px solid #e0defc;
+    }
+    .ctrl-card label {
+      display: block;
+      font-size: 12px;
+      color: #6b6b8a;
+      margin-bottom: 10px;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      accent-color: #7F77DD;
+      height: 4px;
+      cursor: pointer;
+    }
+    .slider-val {
+      font-size: 16px;
+      font-weight: 600;
+      color: #26215C;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    /* ── Run button ── */
+    .run-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: none;
+      background: linear-gradient(135deg, #7F77DD, #534AB7);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.3px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .run-btn:hover { opacity: 0.92; }
+    .run-btn:active { transform: scale(0.98); }
+
+    /* ── Charts ── */
+    .charts-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 1rem;
+    }
+    @media (max-width: 540px) { .charts-row { grid-template-columns: 1fr; } }
+
+    .chart-box {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid #e0defc;
+    }
+    .chart-title {
+      font-size: 12px;
+      color: #6b6b8a;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .chart-title span {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 2px;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .chart-wrap {
+      position: relative;
+      height: 180px;
+    }
+
+    /* ── Stats ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 1rem;
+    }
+    .stat {
+      background: #fff;
+      border-radius: 12px;
+      padding: 0.85rem;
+      text-align: center;
+      border: 1px solid #e0defc;
+    }
+    .stat-label { font-size: 11px; color: #6b6b8a; margin-bottom: 4px; }
+    .stat-val { font-size: 18px; font-weight: 600; color: #26215C; }
+
+    /* ── Insight box ── */
+    .insight {
+      background: #EEEDFE;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      font-size: 14px;
+      color: #3C3489;
+      text-align: center;
+      line-height: 1.7;
+      border: 1px solid #c4c2ee;
+    }
+    .insight strong { color: #26215C; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="badge">Foundations of Statistical Analysis</div>
+    <h1>Central Limit Theorem</h1>
+    <p>Any distribution becomes normal when you average enough samples</p>
+  </div>
+
+  <!-- Distribution picker -->
+  <div class="dist-btns">
+    <button class="dist-btn active" data-dist="uniform">Uniform</button>
+    <button class="dist-btn" data-dist="exponential">Exponential</button>
+    <button class="dist-btn" data-dist="bimodal">Bimodal</button>
+    <button class="dist-btn" data-dist="skewed">Skewed</button>
+  </div>
+
+  <!-- Sliders -->
+  <div class="controls">
+    <div class="ctrl-card">
+      <label for="sampleSize">Sample size (n)</label>
+      <div class="slider-row">
+        <input type="range" id="sampleSize" min="1" max="50" value="5" step="1" />
+        <span class="slider-val" id="sizeVal">5</span>
+      </div>
+    </div>
+    <div class="ctrl-card">
+      <label for="numSamples">Number of samples</label>
+      <div class="slider-row">
+        <input type="range" id="numSamples" min="10" max="2000" value="200" step="10" />
+        <span class="slider-val" id="numVal">200</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="run-btn" id="runBtn">Run Simulation</button>
+
+  <!-- Charts -->
+  <div class="charts-row">
+    <div class="chart-box">
+      <div class="chart-title">
+        <span style="background:#D85A30;"></span>Population distribution
+      </div>
+      <div class="chart-wrap"><canvas id="popChart"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">
+        <span style="background:#7F77DD;"></span>Distribution of sample means
+      </div>
+      <div class="chart-wrap"><canvas id="sampleChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-label">Population mean (μ)</div>
+      <div class="stat-val" id="statPopMean">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Mean of means</div>
+      <div class="stat-val" id="statSampleMean">—</div>
+    </div>
+    <div class="stat">
+      <div class="stat-label">Std error (σ/√n)</div>
+      <div class="stat-val" id="statStdErr">—</div>
+    </div>
+  </div>
+
+  <!-- Insight -->
+  <div class="insight" id="insight">
+    Choose a distribution above and click <strong>Run Simulation</strong> to see the magic!
+  </div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let currentDist = 'uniform';
+  let popChartInst = null;
+  let sampleChartInst = null;
+
+  // ── Distribution picker ────────────────────────────────────
+  document.querySelectorAll('.dist-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.dist-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentDist = btn.dataset.dist;
+    });
+  });
+
+  // ── Sliders ────────────────────────────────────────────────
+  const sampleSizeEl = document.getElementById('sampleSize');
+  const numSamplesEl = document.getElementById('numSamples');
+  const sizeValEl    = document.getElementById('sizeVal');
+  const numValEl     = document.getElementById('numVal');
+
+  sampleSizeEl.addEventListener('input', () => sizeValEl.textContent = sampleSizeEl.value);
+  numSamplesEl.addEventListener('input', () => numValEl.textContent  = numSamplesEl.value);
+
+  // ── Random samplers ────────────────────────────────────────
+  function drawOne(dist) {
+    switch (dist) {
+      case 'uniform':
+        return Math.random() * 10;
+
+      case 'exponential':
+        // Inverse CDF of Exp(λ=0.5)
+        return -Math.log(1 - Math.random()) * 2;
+
+      case 'bimodal':
+        // Mix of two narrow uniforms
+        return Math.random() < 0.5
+          ? Math.random() * 2 + 1
+          : Math.random() * 2 + 7;
+
+      case 'skewed': {
+        // Box-Muller, keep only positive half → right skew
+        let u, v;
+        do { u = Math.random(); } while (u === 0);
+        do { v = Math.random(); } while (v === 0);
+        return Math.abs(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)) * 2;
+      }
+    }
+  }
+
+  // ── Helpers ────────────────────────────────────────────────
+  function mean(arr) {
+    return arr.reduce((a, b) => a + b, 0) / arr.length;
+  }
+
+  function stdDev(arr, mu) {
+    return Math.sqrt(arr.reduce((a, b) => a + (b - mu) ** 2, 0) / arr.length);
+  }
+
+  function makeBins(data, numBins) {
+    const mn = Math.min(...data);
+    const mx = Math.max(...data);
+    const bw = (mx - mn) / numBins || 1;
+    const bins = new Array(numBins).fill(0);
+    const labels = Array.from({ length: numBins }, (_, i) =>
+      (mn + (i + 0.5) * bw).toFixed(2)
+    );
+    data.forEach(v => {
+      let idx = Math.floor((v - mn) / bw);
+      if (idx >= numBins) idx = numBins - 1;
+      bins[idx]++;
+    });
+    return { labels, bins, binWidth: bw };
+  }
+
+  function normalPDF(x, mu, sigma) {
+    return (1 / (sigma * Math.sqrt(2 * Math.PI))) *
+           Math.exp(-0.5 * ((x - mu) / sigma) ** 2);
+  }
+
+  // ── Main simulation ────────────────────────────────────────
+  function runSim() {
+    const n    = parseInt(sampleSizeEl.value);
+    const numS = parseInt(numSamplesEl.value);
+
+    // Population snapshot (for the left chart)
+    const pop = Array.from({ length: 5000 }, () => drawOne(currentDist));
+
+    // Sample means (right chart)
+    const means = Array.from({ length: numS }, () => {
+      let s = 0;
+      for (let i = 0; i < n; i++) s += drawOne(currentDist);
+      return s / n;
+    });
+
+    // Statistics
+    const popMean    = mean(pop);
+    const popStd     = stdDev(pop, popMean);
+    const meanOfMeans = mean(means);
+    const stdErr     = popStd / Math.sqrt(n);
+
+    document.getElementById('statPopMean').textContent   = popMean.toFixed(2);
+    document.getElementById('statSampleMean').textContent = meanOfMeans.toFixed(2);
+    document.getElementById('statStdErr').textContent    = stdErr.toFixed(3);
+
+    // Bins
+    const pb = makeBins(pop,   20);
+    const sb = makeBins(means, 30);
+
+    // Bell curve overlay — one value per bin label so it aligns with the bars
+    const bellPts = sb.labels.map(label => {
+      const x = parseFloat(label);
+      return normalPDF(x, meanOfMeans, stdErr) * numS * sb.binWidth;
+    });
+
+    // ── Destroy old charts ──
+    if (popChartInst)    popChartInst.destroy();
+    if (sampleChartInst) sampleChartInst.destroy();
+
+    // ── Population chart ──
+    popChartInst = new Chart(document.getElementById('popChart'), {
+      type: 'bar',
+      data: {
+        labels: pb.labels,
+        datasets: [{
+          data: pb.bins,
+          backgroundColor: 'rgba(216, 90, 48, 0.7)',
+          borderWidth: 0,
+          borderRadius: 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: {
+          title: (items) => `Value ≈ ${items[0].label}`,
+          label:  (item)  => `Count: ${item.raw}`
+        }}},
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 5, font: { size: 10 }, color: '#6b6b8a' },
+            grid: { display: false }
+          },
+          y: {
+            ticks: { font: { size: 10 }, color: '#6b6b8a' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
+        }
+      }
+    });
+
+    // ── Sample means chart ──
+    sampleChartInst = new Chart(document.getElementById('sampleChart'), {
+      type: 'bar',
+      data: {
+        labels: sb.labels,
+        datasets: [
+          {
+            type: 'bar',
+            data: sb.bins,
+            backgroundColor: 'rgba(127, 119, 221, 0.7)',
+            borderWidth: 0,
+            borderRadius: 3,
+            order: 2
+          },
+          {
+            type: 'line',
+            data: bellPts,
+            borderColor: '#1D9E75',
+            borderWidth: 2.5,
+            pointRadius: 0,
+            fill: false,
+            tension: 0.4,
+            order: 1
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { filter: (item) => item.datasetIndex === 0 }},
+        scales: {
+          x: {
+            ticks: { maxTicksLimit: 5, font: { size: 10 }, color: '#6b6b8a' },
+            grid: { display: false }
+          },
+          y: {
+            ticks: { font: { size: 10 }, color: '#6b6b8a' },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          }
+        }
+      }
+    });
+
+    // ── Insight text ──
+    const distNames = {
+      uniform:     'Uniform (flat)',
+      exponential: 'Exponential (skewed right)',
+      bimodal:     'Bimodal (two humps)',
+      skewed:      'Right-skewed'
+    };
+    const insightEl = document.getElementById('insight');
+    if (n >= 30) {
+      insightEl.innerHTML = `With <strong>n = ${n}</strong>, the sample means form a near-perfect bell curve — even though the original <strong>${distNames[currentDist]}</strong> distribution looks nothing like one. That's the Central Limit Theorem!`;
+    } else {
+      insightEl.innerHTML = `With <strong>n = ${n}</strong>, you can already see the bell shape forming. Try increasing n to <strong>30+</strong> to see the CLT fully kick in!`;
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+  document.getElementById('runBtn').addEventListener('click', runSim);
+  runSim();
+</script>
+</body>
+</html>
