@@ -336,237 +336,166 @@
 
 <script>
   // ── State ──────────────────────────────────────────────────
-  let currentDist = 'uniform';
-  let popChartInst = null;
-  let sampleChartInst = null;
-  let spare = null; // Only declare once 
+let currentDist = 'uniform';
+let popChartInst = null;
+let sampleChartInst = null;
+let spare = null; // Only declare once
 
-  // ── Distribution picker ────────────────────────────────────
-  document.querySelectorAll('.dist-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.dist-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentDist = btn.dataset.dist;
-    });
-  });
-
-  // ── Sliders ────────────────────────────────────────────────
-  const sampleSizeEl = document.getElementById('sampleSize');
-  const numSamplesEl = document.getElementById('numSamples');
-  const sizeValEl    = document.getElementById('sizeVal');
-  const numValEl     = document.getElementById('numVal');
-
- 
-  
-  sampleSizeEl.addEventListener('input', () => sizeValEl.textContent = sampleSizeEl.value);
-  numSamplesEl.addEventListener('input', () => numValEl.textContent  = numSamplesEl.value);
-
-
+// ── Helpers ────────────────────────────────────────────────
 function normalRandom() {
-  if (spare !== null) { const v = spare; spare = null; return v; }
-  let u, v, s;
-  do { u = Math.random()*2-1; v = Math.random()*2-1; s = u*u+v*v; } while (s===0||s>=1);
-  const mul = Math.sqrt(-2*Math.log(s)/s);
-  spare = v * mul;
-  return u * mul;
-}
-  
-  // ── Random samplers ────────────────────────────────────────
-  function drawOne(dist) {
-  switch (dist) {
-    case 'uniform':
-      return Math.random() * 10;
-
-    case 'exponential':
-      return -Math.log(1 - Math.random()) * 2;
-
-    case 'bimodal':
-      return Math.random() < 0.5
-        ? Math.random() * 2 + 1
-        : Math.random() * 2 + 7;
-
-    case 'skewed': {
-      let u, v;
-      do { u = Math.random(); } while (u === 0);
-      do { v = Math.random(); } while (v === 0);
-      return Math.abs(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)) * 2;
+    if (spare !== null) {
+        const val = spare;
+        spare = null;
+        return val;
     }
+    let u, v, s;
+    do {
+        u = Math.random() * 2 - 1;
+        v = Math.random() * 2 - 1;
+        s = u * u + v * v;
+    } while (s === 0 || s >= 1);
 
-    case 'normal':
-      return normalRandom() * 2 + 5;
-
-    default:
-      return 0; // safety fallback
-  }
+    const mul = Math.sqrt(-2 * Math.log(s) / s);
+    spare = v * mul;
+    return u * mul;
 }
-//should be good
 
-
-  // ── Helpers ────────────────────────────────────────────────
-  
-  function mean(arr) {
+function mean(arr) {
     return arr.reduce((a, b) => a + b, 0) / arr.length;
-  }
+}
 
-  function stdDev(arr, mu) {
+function stdDev(arr, mu) {
     return Math.sqrt(arr.reduce((a, b) => a + (b - mu) ** 2, 0) / arr.length);
-  }
+}
 
-  function makeBins(data, numBins) {
+function makeBins(data, numBins) {
     const mn = Math.min(...data);
     const mx = Math.max(...data);
     const bw = (mx - mn) / numBins || 1;
     const bins = new Array(numBins).fill(0);
     const labels = Array.from({ length: numBins }, (_, i) =>
-      (mn + (i + 0.5) * bw).toFixed(2)
+        (mn + (i + 0.5) * bw).toFixed(2)
     );
     data.forEach(v => {
-      let idx = Math.floor((v - mn) / bw);
-      if (idx >= numBins) idx = numBins - 1;
-      bins[idx]++;
+        let idx = Math.floor((v - mn) / bw);
+        if (idx >= numBins) idx = numBins - 1;
+        bins[idx]++;
     });
     return { labels, bins, binWidth: bw };
-  }
+}
 
-  function normalPDF(x, mu, sigma) {
+function normalPDF(x, mu, sigma) {
     return (1 / (sigma * Math.sqrt(2 * Math.PI))) *
            Math.exp(-0.5 * ((x - mu) / sigma) ** 2);
-  }
+}
 
-  // ── Main simulation ────────────────────────────────────────
-  function runSim() {
-    const n    = parseInt(sampleSizeEl.value);
-    const numS = parseInt(numSamplesEl.value);
+// ── Random samplers ────────────────────────────────────────
+function drawOne(dist) {
+    switch (dist) {
+        case 'uniform': return Math.random() * 10;
+        case 'exponential': return -Math.log(1 - Math.random()) * 2;
+        case 'bimodal': return Math.random() < 0.5 ? Math.random() * 2 + 1 : Math.random() * 2 + 7;
+        case 'skewed':
+            let u, v;
+            do { u = Math.random(); } while (u === 0);
+            do { v = Math.random(); } while (v === 0);
+            return Math.abs(Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v)) * 2;
+        case 'normal': return normalRandom() * 2 + 5;
+        default: return 0;
+    }
+}
 
-    // Population snapshot (for the left chart)
+// ── Main simulation ────────────────────────────────────────
+function runSim() {
+    const n = parseInt(document.getElementById('sampleSize').value);
+    const numS = parseInt(document.getElementById('numSamples').value);
+
     const pop = Array.from({ length: 5000 }, () => drawOne(currentDist));
-
-    // Sample means (right chart)
     const means = Array.from({ length: numS }, () => {
-      let s = 0;
-      for (let i = 0; i < n; i++) s += drawOne(currentDist);
-      return s / n;
+        let s = 0;
+        for (let i = 0; i < n; i++) s += drawOne(currentDist);
+        return s / n;
     });
 
-    // Statistics
-    const popMean    = mean(pop);
-    const popStd     = stdDev(pop, popMean);
+    const popMean = mean(pop);
+    const popStd = stdDev(pop, popMean);
     const meanOfMeans = mean(means);
-    const stdErr     = popStd / Math.sqrt(n);
+    const stdErr = popStd / Math.sqrt(n);
 
-    document.getElementById('statPopMean').textContent   = popMean.toFixed(2);
+    document.getElementById('statPopMean').textContent = popMean.toFixed(2);
     document.getElementById('statSampleMean').textContent = meanOfMeans.toFixed(2);
-    document.getElementById('statStdErr').textContent    = stdErr.toFixed(3);
+    document.getElementById('statStdErr').textContent = stdErr.toFixed(3);
 
-    // Bins
-    const pb = makeBins(pop,   20);
+    const pb = makeBins(pop, 20);
     const sb = makeBins(means, 30);
     
-    
-    // Bell curve overlay — one value per bin label so it aligns with the bars
+    // Calculate bell curve points
     const bellPts = sb.labels.map(label => {
-      const x = parseFloat(label);
-      return normalPDF(x, meanOfMeans, stdErr) * numS * sb.binWidth;
+        const x = parseFloat(label);
+        return normalPDF(x, meanOfMeans, stdErr) * numS * sb.binWidth;
     });
 
-    // ── Destroy old charts ──
-    if (popChartInst)    popChartInst.destroy();
+    if (popChartInst) popChartInst.destroy();
     if (sampleChartInst) sampleChartInst.destroy();
 
-    // ── Population chart ──
     popChartInst = new Chart(document.getElementById('popChart'), {
-      type: 'bar',
-      data: {
-        labels: pb.labels,
-        datasets: [{
-          data: pb.bins,
-          backgroundColor: 'rgba(216, 90, 48, 0.7)',
-          borderWidth: 0,
-          borderRadius: 3
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: {
-          title: (items) => `Value ≈ ${items[0].label}`,
-          label:  (item)  => `Count: ${item.raw}`
-        }}},
-        scales: {
-          x: {
-            ticks: { maxTicksLimit: 5, font: { size: 10 }, color: '#6b6b8a' },
-            grid: { display: false }
-          },
-          y: {
-            ticks: { font: { size: 10 }, color: '#6b6b8a' },
-            grid: { color: 'rgba(0,0,0,0.05)' }
-          }
-        }
-      }
+        type: 'bar',
+        data: {
+            labels: pb.labels,
+            datasets: [{
+                data: pb.bins,
+                backgroundColor: 'rgba(216, 90, 48, 0.7)',
+                borderWidth: 0,
+                borderRadius: 3
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 
-    // ── Sample means chart ──
     sampleChartInst = new Chart(document.getElementById('sampleChart'), {
-      type: 'bar',
-      data: {
-        labels: sb.labels,
-        datasets: [
-          {
-            type: 'bar',
-            data: sb.bins,
-            backgroundColor: 'rgba(127, 119, 221, 0.7)',
-            borderWidth: 0,
-            borderRadius: 3,
-            order: 2
-          },
-          {
-            type: 'line',
-            data: bellPts,
-            borderColor: '#1D9E75',
-            borderWidth: 2.5,
-            pointRadius: 0,
-            fill: false,
-            tension: 0.4,
-            order: 1
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { filter: (item) => item.datasetIndex === 0 }},
-        scales: {
-          x: {
-            ticks: { maxTicksLimit: 5, font: { size: 10 }, color: '#6b6b8a' },
-            grid: { display: false }
-          },
-          y: {
-            ticks: { font: { size: 10 }, color: '#6b6b8a' },
-            grid: { color: 'rgba(0,0,0,0.05)' }
-          }
-        }
-      }
+        data: {
+            labels: sb.labels,
+            datasets: [
+                { type: 'bar', data: sb.bins, backgroundColor: 'rgba(127, 119, 221, 0.7)', borderRadius: 3, order: 2 },
+                { type: 'line', data: bellPts, borderColor: '#1D9E75', borderWidth: 2.5, pointRadius: 0, tension: 0.4, order: 1 }
+            ]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
 
-    // ── Insight text ──
-    const distNames = {
-      uniform:     'Uniform (flat)',
-      normal:      'Normal (Gaussian bell curve)',
-      exponential: 'Exponential (right-skewed)',
-      bimodal:     'Bimodal (two peaks)',
-      skewed:      'Folded normal (right-skewed)'
-    };
     const insightEl = document.getElementById('insight');
-    if (n >= 30) {
-      insightEl.innerHTML = `With <strong>n = ${n}</strong>, the sample means form a near-perfect bell curve — even though the original <strong>${distNames[currentDist]}</strong> distribution looks nothing like one. That's the Central Limit Theorem!`;
-    } else {
-      insightEl.innerHTML = `With <strong>n = ${n}</strong>, you can already see the bell shape forming. Try increasing n to <strong>30+</strong> to see the CLT fully kick in!`;
-    }
-  }
+    insightEl.innerHTML = n >= 30 
+        ? `With <strong>n = ${n}</strong>, the means form a bell curve. That's the CLT!`
+        : `With <strong>n = ${n}</strong>, the bell shape is starting. Try n > 30.`;
+}
 
-  // ── Init ───────────────────────────────────────────────────
-  document.getElementById('runBtn').addEventListener('click', runSim);
-  runSim();
+// ── Event Listeners ────────────────────────────────────────
+document.querySelectorAll('.dist-btn:not([data-z])').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.dist-btn:not([data-z])').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDist = btn.dataset.dist;
+        runSim();
+    });
+});
+
+document.getElementById('sampleSize').addEventListener('input', (e) => {
+    document.getElementById('sizeVal').textContent = e.target.value;
+});
+document.getElementById('numSamples').addEventListener('input', (e) => {
+    document.getElementById('numVal').textContent = e.target.value;
+});
+document.getElementById('runBtn').addEventListener('click', runSim);
+
+// Initial Run
+runSim();
+
+// ── Confidence Interval Logic ──────────────────────────────
+let ciZ = 1.645;
+// ... (Your existing Confidence Interval code here) ...
+// Ensure you keep the updateCI() and drawCIChart() functions from your original code.
+    
+
 // ═══════════════════════════════════
 // CONFIDENCE INTERVAL BUILDER
 // ═══════════════════════════════════
